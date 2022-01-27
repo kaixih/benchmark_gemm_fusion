@@ -1,3 +1,6 @@
+
+make
+
 declare -a test_cmds=("./cudnn_v8_matmul_bias_gelu_fp16.out 0"
                       "python tf_matmul_bias_gelu_fp16.py"
                       "./cudnn_v8_matmul_bias_fp16.out 0"
