@@ -114,10 +114,10 @@ int main(int argc, char **argv) {
   cudnnDataType_t dataType = CUDNN_DATA_HALF;
   cudnnDataType_t computeType = CUDNN_DATA_FLOAT;
 
-	generateStrides(a_dims, a_strides, ndims, CUDNN_TENSOR_NCHW);
-	generateStrides(b_dims, b_strides, ndims, CUDNN_TENSOR_NCHW);
-	generateStrides(c_dims, c_strides, ndims, CUDNN_TENSOR_NCHW);
-	generateStrides(z_dims, z_strides, ndims, CUDNN_TENSOR_NCHW);
+  generateStrides(a_dims, a_strides, ndims, CUDNN_TENSOR_NCHW);
+  generateStrides(b_dims, b_strides, ndims, CUDNN_TENSOR_NCHW);
+  generateStrides(c_dims, c_strides, ndims, CUDNN_TENSOR_NCHW);
+  generateStrides(z_dims, z_strides, ndims, CUDNN_TENSOR_NCHW);
   
   auto tensor_a = cudnn_frontend::TensorBuilder()
                       .setDim(ndims, a_dims)
