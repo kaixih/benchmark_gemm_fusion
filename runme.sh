@@ -4,7 +4,9 @@ make
 declare -a test_cmds=("./cudnn_v8_matmul_bias_gelu_fp16.out 0"
                       "python tf_matmul_bias_gelu_fp16.py"
                       "./cudnn_v8_matmul_bias_fp16.out 0"
-                      "python tf_matmul_bias_fp16.py")
+                      "python tf_matmul_bias_fp16.py"
+                      "./cublaslt_matmul_bias_gelu_fp16.out"
+                      "./cublaslt_matmul_bias_fp16.out")
 
 for test_cmd in "${test_cmds[@]}"
 do

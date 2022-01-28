@@ -341,6 +341,8 @@ int main(int argc, char **argv) {
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
   printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
 
   print_output(c, c_size, "c out:", 1);
 
@@ -351,4 +353,5 @@ int main(int argc, char **argv) {
   if (workspace_bytes != 0) {
     checkCUDA(cudaFree(d_workspace));
   }
+	checkCUDNN(cudnnDestroy(cudnn));
 }
