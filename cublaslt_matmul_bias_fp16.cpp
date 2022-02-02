@@ -28,10 +28,16 @@
 
 #define FLOAT_T __half
 
-void init_input(FLOAT_T *ptr, int size) {
+void init_input(FLOAT_T *ptr, int size, FLOAT_T init=-1.0) {
   FLOAT_T* ptr_host = new FLOAT_T[size];
   for (int i = 0; i < size; i++) {
-    float val = static_cast<float>(rand()) / RAND_MAX;
+    float val;
+    if (init == -1.0) {
+      // val = static_cast<float>(rand()) / RAND_MAX;
+      val = i;
+    } else {
+      val = init;
+    }
     ptr_host[i]  = static_cast<FLOAT_T>(val);
   }
   checkCUDA(cudaMemcpy(ptr, ptr_host, sizeof(FLOAT_T) * size,
@@ -69,9 +75,9 @@ int main(int argc, char **argv) {
     plan_idx = atoi(argv[1]);
   }
 
-  int M = 64;
-  int K = 32;
-  int N = 64;
+  int M = 3;
+  int K = 2;
+  int N = 4;
   if (argc > 4) {
     M = atoi(argv[2]);
     K = atoi(argv[3]);
@@ -101,7 +107,10 @@ int main(int argc, char **argv) {
   srand(3);
   init_input(a, a_size);
   init_input(b, b_size);
-  init_input(c, c_size);
+  init_input(z, z_size, 0.0);
+  print_output(a, a_size, "a in:", -1);
+  print_output(b, b_size, "b in:", -1);
+  print_output(z, z_size, "z in:", -1);
 
   cudaDataType_t dataType = CUDA_R_16F;
   cudaDataType_t scaleType = CUDA_R_32F;
@@ -119,12 +128,12 @@ int main(int argc, char **argv) {
       matmul_desc, CUBLASLT_MATMUL_DESC_EPILOGUE, &epilogType,
       sizeof(epilogType)));
 
-  cublasLtMatrixLayout_t a_desc;
-  checkCUBLASLT(cublasLtMatrixLayoutCreate(&a_desc, dataType, M, K, M));
-  cublasLtMatrixLayout_t b_desc;
-  checkCUBLASLT(cublasLtMatrixLayoutCreate(&b_desc, dataType, K, N, K));
-  cublasLtMatrixLayout_t c_desc;
-  checkCUBLASLT(cublasLtMatrixLayoutCreate(&c_desc, dataType, M, N, M));
+  cublasLtMatrixLayout_t a_desc; // represents a ptr (in col_major)
+  checkCUBLASLT(cublasLtMatrixLayoutCreate(&a_desc, dataType, K, M, K));
+  cublasLtMatrixLayout_t b_desc; // represents b ptr (in col-major)
+  checkCUBLASLT(cublasLtMatrixLayoutCreate(&b_desc, dataType, N, K, N));
+  cublasLtMatrixLayout_t c_desc; // represents c ptr (in col_major)
+  checkCUBLASLT(cublasLtMatrixLayoutCreate(&c_desc, dataType, N, M, N));
 
   size_t workspace_size = 1 << 30; // 1 GB
   printf("LOG >>> Max workspace size (bytes): %ld\n", workspace_size);
@@ -137,8 +146,9 @@ int main(int argc, char **argv) {
   int num_returned_results = 0;
   cublasLtMatmulHeuristicResult_t* heuristics =
       new cublasLtMatmulHeuristicResult_t[plan_idx + 1];
+  // Note: we put b_desc in front of a_desc.
   checkCUBLASLT(cublasLtMatmulAlgoGetHeuristic(
-      cublaslt, matmul_desc, a_desc, b_desc, c_desc, c_desc, preference,
+      cublaslt, matmul_desc, b_desc, a_desc, c_desc, c_desc, preference,
       plan_idx + 1, heuristics, &num_returned_results));
   printf("LOG >>> Number of requested results: %d\n", plan_idx + 1);
   printf("LOG >>> Number of returned results: %d\n", num_returned_results);
@@ -157,31 +167,14 @@ int main(int argc, char **argv) {
   const float alpha = 1.0f;
   const float beta = 0.0f;
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-
   // Warmup
+  // Note: we put b_desc in front of a_desc.
   checkCUBLASLT(cublasLtMatmul(
-      cublaslt, matmul_desc, &alpha, a, a_desc, b, b_desc, &beta, c, c_desc, c,
+      cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc, c,
       c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
 
-  cudaEventRecord(start);
-  const int num_repeats = 50;
-  for (int i = 0; i < num_repeats; i++) {
-    checkCUBLASLT(cublasLtMatmul(
-        cublaslt, matmul_desc, &alpha, a, a_desc, b, b_desc, &beta, c, c_desc,
-        c, c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
-  }
-  cudaEventRecord(stop);
-  cudaEventSynchronize(stop);
-  float milliseconds = 0;
-  cudaEventElapsedTime(&milliseconds, start, stop);
-  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
-  cudaEventDestroy(start);
-  cudaEventDestroy(stop);
-
-  print_output(c, c_size, "c out:", 1);
+  
+  print_output(c, c_size, "c out:", -1);
 
   checkCUDA(cudaFree(a));
   checkCUDA(cudaFree(b));
