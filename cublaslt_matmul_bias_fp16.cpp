@@ -108,9 +108,11 @@ int main(int argc, char **argv) {
   init_input(a, a_size);
   init_input(b, b_size);
   init_input(z, z_size, 0.0);
+#ifdef DEBUG_MODE
   print_output(a, a_size, "a in:", -1);
   print_output(b, b_size, "b in:", -1);
   print_output(z, z_size, "z in:", -1);
+#endif
 
   cudaDataType_t dataType = CUDA_R_16F;
   cudaDataType_t scaleType = CUDA_R_32F;
@@ -194,7 +196,9 @@ int main(int argc, char **argv) {
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
   
+#ifdef DEBUG_MODE
   print_output(c, c_size, "c out:", -1);
+#endif
 
   checkCUDA(cudaFree(a));
   checkCUDA(cudaFree(b));
