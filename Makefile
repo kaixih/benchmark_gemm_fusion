@@ -1,5 +1,6 @@
-CUDNN_FRONTEND_DIR=/home/cudnn_frontend/include/
-CXXFLAGS=-DNV_CUDNN_DISABLE_EXCEPTION -lcudnn -DDEBUG_MODE
+CUDNN_FLAGS=-I /home/cudnn_frontend/include/ \
+					  -DNV_CUDNN_DISABLE_EXCEPTION -lcudnn
+#CXXFLAGS=-DDEBUG_MODE
 
 all: cudnn_v8_matmul_bias_gelu_fp16.out \
 	   cudnn_v8_matmul_bias_fp16.out \
@@ -7,16 +8,16 @@ all: cudnn_v8_matmul_bias_gelu_fp16.out \
 	   cublaslt_matmul_bias_fp16.out
 
 cudnn_v8_matmul_bias_gelu_fp16.out: cudnn_v8_matmul_bias_gelu_fp16.cpp
-	nvcc $< -o $@ -I ${CUDNN_FRONTEND_DIR} ${CXXFLAGS}
+	nvcc $< -o $@ ${CUDNN_FLAGS} ${CXXFLAGS}
 
 cudnn_v8_matmul_bias_fp16.out: cudnn_v8_matmul_bias_fp16.cpp
-	nvcc $< -o $@ -I ${CUDNN_FRONTEND_DIR} ${CXXFLAGS}
+	nvcc $< -o $@ ${CUDNN_FLAGS} ${CXXFLAGS}
 
 cublaslt_matmul_bias_gelu_fp16.out: cublaslt_matmul_bias_gelu_fp16.cpp
-	nvcc $< -o $@ -lcublasLt
+	nvcc $< -o $@ -lcublasLt ${CXXFLAGS}
 
 cublaslt_matmul_bias_fp16.out: cublaslt_matmul_bias_fp16.cpp
-	nvcc $< -o $@ -lcublasLt
+	nvcc $< -o $@ -lcublasLt ${CXXFLAGS}
 
 clean:
 	rm -rf *.out *.sqlite *.nsys-rep
