@@ -32,10 +32,16 @@ uint64_t CpuTimer() {
   return (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
 }
 
-void init_input(FLOAT_T *ptr, int size) {
+void init_input(FLOAT_T *ptr, int size, FLOAT_T init=-1.0) {
   FLOAT_T* ptr_host = new FLOAT_T[size];
   for (int i = 0; i < size; i++) {
-    float val = static_cast<float>(rand()) / RAND_MAX;
+    float val;
+    if (init == -1.0) {
+      val = static_cast<float>(rand()) / RAND_MAX;
+      // val = i;
+    } else {
+      val = init;
+    }
     ptr_host[i]  = static_cast<FLOAT_T>(val);
   }
   checkCUDA(cudaMemcpy(ptr, ptr_host, sizeof(FLOAT_T) * size,
@@ -91,9 +97,9 @@ int main(int argc, char **argv) {
     plan_idx = atoi(argv[1]);
   }
 
-  int M = 64;
-  int K = 32;
-  int N = 64;
+  int M = 8;
+  int K = 8;
+  int N = 8;
   if (argc > 4) {
     M = atoi(argv[2]);
     K = atoi(argv[3]);
@@ -310,7 +316,10 @@ int main(int argc, char **argv) {
   srand(3);
   init_input(a, a_size);
   init_input(b, b_size);
-  init_input(z, z_size);
+  init_input(z, z_size, 0.0);
+  print_output(a, a_size, "a in:", -1);
+  print_output(b, b_size, "b in:", -1);
+  print_output(z, z_size, "z in:", -1);
 
   void* data_ptrs[] = {a, b, c, z};
   int64_t uids[] = {'a', 'b', 'c', 'z'};
@@ -321,21 +330,22 @@ int main(int argc, char **argv) {
                           .build();
   checkCUDNN(variant_pack.get_status());
 
-  cudaEvent_t start, stop;
-  cudaEventCreate(&start);
-  cudaEventCreate(&stop);
-
   // Warmup
   checkCUDNN(cudnnBackendExecute(cudnn, workable_plans[plan_idx].get_raw_desc(),
                                  variant_pack.get_raw_desc()));
 
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
   cudaEventRecord(start);
+
   const int num_repeats = 50;
   for (int i = 0; i < num_repeats; i++) {
     checkCUDNN(cudnnBackendExecute(
                    cudnn, workable_plans[plan_idx].get_raw_desc(),
                    variant_pack.get_raw_desc()));
   }
+
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   float milliseconds = 0;
@@ -344,7 +354,7 @@ int main(int argc, char **argv) {
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
-  print_output(c, c_size, "c out:", 1);
+  print_output(c, c_size, "c out:", -1);
 
   checkCUDA(cudaFree(a));
   checkCUDA(cudaFree(b));

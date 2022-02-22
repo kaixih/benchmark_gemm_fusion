@@ -33,8 +33,8 @@ void init_input(FLOAT_T *ptr, int size, FLOAT_T init=-1.0) {
   for (int i = 0; i < size; i++) {
     float val;
     if (init == -1.0) {
-      // val = static_cast<float>(rand()) / RAND_MAX;
-      val = i;
+      val = static_cast<float>(rand()) / RAND_MAX;
+      // val = i;
     } else {
       val = init;
     }
@@ -75,8 +75,8 @@ int main(int argc, char **argv) {
     plan_idx = atoi(argv[1]);
   }
 
-  int M = 3;
-  int K = 2;
+  int M = 2;
+  int K = 3;
   int N = 4;
   if (argc > 4) {
     M = atoi(argv[2]);
@@ -173,6 +173,26 @@ int main(int argc, char **argv) {
       cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc, c,
       c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
 
+  cudaEvent_t start, stop;
+  cudaEventCreate(&start);
+  cudaEventCreate(&stop);
+  cudaEventRecord(start);
+
+  const int num_repeats = 50;
+  for (int i = 0; i < num_repeats; i++) {
+    // Note: we put b_desc in front of a_desc.
+    checkCUBLASLT(cublasLtMatmul(
+        cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc,
+        c, c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
+  }
+
+  cudaEventRecord(stop);
+  cudaEventSynchronize(stop);
+  float milliseconds = 0;
+  cudaEventElapsedTime(&milliseconds, start, stop);
+  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
+  cudaEventDestroy(start);
+  cudaEventDestroy(stop);
   
   print_output(c, c_size, "c out:", -1);
 
