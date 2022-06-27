@@ -117,7 +117,7 @@ int main(int argc, char **argv) {
   cudaDataType_t dataType = CUDA_R_16F;
   cudaDataType_t scaleType = CUDA_R_32F;
   cublasComputeType_t computeType = CUBLAS_COMPUTE_32F;
-  cublasLtEpilogue_t epilogType = CUBLASLT_EPILOGUE_GELU_BIAS;
+  cublasLtEpilogue_t epilogType = CUBLASLT_EPILOGUE_BIAS;
 
   cublasLtHandle_t cublaslt;
   checkCUBLASLT(cublasLtCreate(&cublaslt));
@@ -195,7 +195,7 @@ int main(int argc, char **argv) {
   printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
-  
+
 #ifdef DEBUG_MODE
   print_output(c, c_size, "c out:", -1);
 #endif

@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   srand(3);
   init_input(a, a_size);
   init_input(b, b_size);
-  init_input(c, c_size, 0.0);
+  init_input(z, z_size, 0.0);
 #ifdef DEBUG_MODE
   print_output(a, a_size, "a in:", -1);
   print_output(b, b_size, "b in:", -1);
