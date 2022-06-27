@@ -332,27 +332,36 @@ int main(int argc, char **argv) {
                           .build();
   checkCUDNN(variant_pack.get_status());
 
-  // Warmup
-  checkCUDNN(cudnnBackendExecute(cudnn, workable_plans[plan_idx].get_raw_desc(),
-                                 variant_pack.get_raw_desc()));
+  auto cudnn_launch = [&](int num_repeats) {
+    for (int i = 0; i < num_repeats; i++) {
+      checkCUDNN(cudnnBackendExecute(
+                     cudnn, workable_plans[plan_idx].get_raw_desc(),
+                     variant_pack.get_raw_desc()));
+    }
+  };
+
+#ifdef DEBUG_MODE
+  const int kWarmupCount = 0;
+  const int kBenchmarkCount = 1;
+#else
+  const int kWarmupCount = 10;
+  const int kBenchmarkCount = 20;
+#endif
+
+  cudnn_launch(kWarmupCount);
 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
 
-  const int num_repeats = 50;
-  for (int i = 0; i < num_repeats; i++) {
-    checkCUDNN(cudnnBackendExecute(
-                   cudnn, workable_plans[plan_idx].get_raw_desc(),
-                   variant_pack.get_raw_desc()));
-  }
+  cudnn_launch(kBenchmarkCount);
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
+  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / kBenchmarkCount);
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 

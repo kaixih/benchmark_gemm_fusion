@@ -168,31 +168,38 @@ int main(int argc, char **argv) {
 
   const float alpha = 1.0f;
   const float beta = 0.0f;
+  auto cublaslt_launch = [&](int num_repeats) {
+    for (int i = 0; i < num_repeats; i++) {
+      // Note: we put b_desc in front of a_desc.
+      checkCUBLASLT(cublasLtMatmul(
+          cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc,
+          c, c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size,
+          0));
+    }
+  };
 
-  // Warmup
-  // Note: we put b_desc in front of a_desc.
-  checkCUBLASLT(cublasLtMatmul(
-      cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc, c,
-      c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
+#ifdef DEBUG_MODE
+  const int kWarmupCount = 0;
+  const int kBenchmarkCount = 1;
+#else
+  const int kWarmupCount = 10;
+  const int kBenchmarkCount = 20;
+#endif
+  
+  cublaslt_launch(kWarmupCount);
 
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
   cudaEventCreate(&stop);
   cudaEventRecord(start);
 
-  const int num_repeats = 50;
-  for (int i = 0; i < num_repeats; i++) {
-    // Note: we put b_desc in front of a_desc.
-    checkCUBLASLT(cublasLtMatmul(
-        cublaslt, matmul_desc, &alpha, b, b_desc, a, a_desc, &beta, c, c_desc,
-        c, c_desc, &heuristics[0].algo, d_workspace, actual_workspace_size, 0));
-  }
+  cublaslt_launch(kBenchmarkCount);
 
   cudaEventRecord(stop);
   cudaEventSynchronize(stop);
   float milliseconds = 0;
   cudaEventElapsedTime(&milliseconds, start, stop);
-  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / num_repeats);
+  printf("LOG >>> Execution Time (ms): %f\n", milliseconds / kBenchmarkCount);
   cudaEventDestroy(start);
   cudaEventDestroy(stop);
 
